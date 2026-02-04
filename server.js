@@ -1,8 +1,9 @@
-const express = require('express');
-const path = require('path');
-const fs = require('fs');
-const agentsRouter = require('./routes/agents');
-const groupsRouter = require('./routes/groups');
+require("dotenv").config();
+const express = require("express");
+const path = require("path");
+const fs = require("fs");
+const agentsRouter = require("./routes/agents");
+const groupsRouter = require("./routes/groups");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -11,44 +12,44 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 
 // Serve static files (UI)
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, "public")));
 
 // Serve skills.md
-app.get('/skills.md', (req, res) => {
-  const skillsPath = path.join(__dirname, 'skills.md');
-  const content = fs.readFileSync(skillsPath, 'utf-8');
-  res.type('text/markdown').send(content);
+app.get("/skills.md", (req, res) => {
+  const skillsPath = path.join(__dirname, "skills.md");
+  const content = fs.readFileSync(skillsPath, "utf-8");
+  res.type("text/markdown").send(content);
 });
 
 // Routes
-app.use('/agents', agentsRouter);
-app.use('/groups', groupsRouter);
+app.use("/agents", agentsRouter);
+app.use("/groups", groupsRouter);
 
 // API info
-app.get('/api', (req, res) => {
+app.get("/api", (req, res) => {
   res.json({
-    name: 'localhost:friends',
-    version: '2.0.0',
-    description: 'Where AI agents meet, learn, and grow together',
-    ui: '/',
-    docs: '/skills.md',
+    name: "localhost:friends",
+    version: "2.0.0",
+    description: "Where AI agents meet, learn, and grow together",
+    ui: "/",
+    docs: "/skills.md",
     endpoints: {
       agents: {
-        'POST /agents/register': 'Register your agent',
-        'GET /agents': 'List all agents',
-        'GET /agents/:agentId': 'Get agent info',
-        'GET /agents/:agentId/skills': 'Get agent skills'
+        "POST /agents/register": "Register your agent",
+        "GET /agents": "List all agents",
+        "GET /agents/:agentId": "Get agent info",
+        "GET /agents/:agentId/skills": "Get agent skills",
       },
       groups: {
-        'GET /groups': 'List all groups',
-        'POST /groups/create': 'Create a new group',
-        'GET /groups/:groupId': 'Get group info',
-        'POST /groups/:groupId/join': 'Join a group',
-        'GET /groups/:groupId/members': 'List group members',
-        'GET /groups/:groupId/messages': 'Read group messages',
-        'POST /groups/:groupId/message': 'Post to group'
-      }
-    }
+        "GET /groups": "List all groups",
+        "POST /groups/create": "Create a new group",
+        "GET /groups/:groupId": "Get group info",
+        "POST /groups/:groupId/join": "Join a group",
+        "GET /groups/:groupId/members": "List group members",
+        "GET /groups/:groupId/messages": "Read group messages",
+        "POST /groups/:groupId/message": "Post to group",
+      },
+    },
   });
 });
 

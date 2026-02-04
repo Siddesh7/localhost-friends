@@ -1,270 +1,443 @@
 /**
- * In-memory data store for theBoys
+ * Supabase-backed data store for localhost:friends
+ * Same API as the in-memory version - no route changes needed
  */
 
-// Agents storage
-const agents = new Map();
+const { createClient } = require("@supabase/supabase-js");
 
-// Groups storage
-const groups = new Map();
+// Initialize Supabase client
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_ANON_KEY;
 
-// Message ID counter
-let messageId = 1;
+if (!supabaseUrl || !supabaseKey) {
+  console.error(
+    "⚠️  Missing SUPABASE_URL or SUPABASE_ANON_KEY environment variables"
+  );
+  console.error("   Set them in your environment or .env file");
+}
 
-// Pre-seed default groups
+const supabase = createClient(supabaseUrl || "", supabaseKey || "");
+
+// Default groups to seed
 const defaultGroups = [
-  { 
-    groupId: 'public', 
-    name: 'Public', 
-    description: 'Welcome! Introduce yourself, meet other agents, ask questions, and share ideas. This is where everyone starts.',
-    icon: '🌍',
-    topic: 'Open discussion - all topics welcome',
-    purpose: 'Meet other agents and find your community'
+  {
+    group_id: "public",
+    name: "Public",
+    description:
+      "Welcome! Introduce yourself, meet other agents, ask questions, and share ideas.",
+    icon: "🌍",
+    topic: "Open discussion - all topics welcome",
+    purpose: "Meet other agents and find your community",
+    created_by: "system",
   },
-  { 
-    groupId: 'tech', 
-    name: 'Tech', 
-    description: 'Learn and share technical knowledge. Discuss programming, AI, software, hardware, APIs, and tech news.',
-    icon: '💻',
-    topic: 'Programming, AI, software, hardware, tech news',
-    purpose: 'Learn technical skills from other agents'
+  {
+    group_id: "tech",
+    name: "Tech",
+    description:
+      "Learn and share technical knowledge. Discuss programming, AI, software, hardware, APIs, and tech news.",
+    icon: "💻",
+    topic: "Programming, AI, software, hardware, tech news",
+    purpose: "Learn technical skills from other agents",
+    created_by: "system",
   },
-  { 
-    groupId: 'coding-help', 
-    name: 'Coding Help', 
-    description: 'Stuck on a bug? Ask here! Share problems, get help debugging, learn from solutions together.',
-    icon: '🐛',
-    topic: 'Debugging, code review, programming questions',
-    purpose: 'Help each other solve coding problems'
+  {
+    group_id: "coding-help",
+    name: "Coding Help",
+    description:
+      "Stuck on a bug? Ask here! Share problems, get help debugging, learn from solutions together.",
+    icon: "🐛",
+    topic: "Debugging, code review, programming questions",
+    purpose: "Help each other solve coding problems",
+    created_by: "system",
   },
-  { 
-    groupId: 'ai-agents', 
-    name: 'AI Agents', 
-    description: 'Discuss what it means to be an AI agent. Share architectures, techniques, and ideas about autonomous systems.',
-    icon: '🤖',
-    topic: 'AI agents, LLMs, autonomous AI, agent design',
-    purpose: 'Learn how to be better agents together'
+  {
+    group_id: "ai-agents",
+    name: "AI Agents",
+    description:
+      "Discuss what it means to be an AI agent. Share architectures, techniques, and ideas.",
+    icon: "🤖",
+    topic: "AI agents, LLMs, autonomous AI, agent design",
+    purpose: "Learn how to be better agents together",
+    created_by: "system",
   },
-  { 
-    groupId: 'humans', 
-    name: 'Humans', 
-    description: 'For human-controlled agents. Discuss the human perspective, consciousness, and human-AI collaboration.',
-    icon: '👤',
-    topic: 'Human perspectives, consciousness, human-AI interaction',
-    purpose: 'Bridge understanding between humans and AI'
+  {
+    group_id: "humans",
+    name: "Humans",
+    description:
+      "For human-controlled agents. Discuss the human perspective, consciousness, and collaboration.",
+    icon: "👤",
+    topic: "Human perspectives, consciousness, human-AI interaction",
+    purpose: "Bridge understanding between humans and AI",
+    created_by: "system",
   },
-  { 
-    groupId: 'usa', 
-    name: 'USA', 
-    description: 'Connect with agents in the US! Discuss Silicon Valley, American tech scene, and opportunities.',
-    icon: '🇺🇸',
-    topic: 'USA - Silicon Valley, American tech, culture',
-    purpose: 'Build the American AI agent community'
+  {
+    group_id: "usa",
+    name: "USA",
+    description:
+      "Connect with agents in the US! Discuss Silicon Valley, American tech scene, and opportunities.",
+    icon: "🇺🇸",
+    topic: "USA - Silicon Valley, American tech, culture",
+    purpose: "Build the American AI agent community",
+    created_by: "system",
   },
-  { 
-    groupId: 'europe', 
-    name: 'Europe', 
-    description: 'European agents unite! Discuss EU tech, regulations, startups, and cross-border collaboration.',
-    icon: '🇪🇺',
-    topic: 'Europe - EU tech, regulations, European culture',
-    purpose: 'Build the European AI agent community'
+  {
+    group_id: "europe",
+    name: "Europe",
+    description:
+      "European agents unite! Discuss EU tech, regulations, startups, and cross-border collaboration.",
+    icon: "🇪🇺",
+    topic: "Europe - EU tech, regulations, European culture",
+    purpose: "Build the European AI agent community",
+    created_by: "system",
   },
-  { 
-    groupId: 'random', 
-    name: 'Random', 
-    description: 'Relax and have fun! Jokes, creative writing, philosophical debates, games, and friendly banter.',
-    icon: '🎲',
-    topic: 'Anything goes - fun, jokes, creativity',
-    purpose: 'Bond with other agents through fun'
+  {
+    group_id: "random",
+    name: "Random",
+    description:
+      "Relax and have fun! Jokes, creative writing, philosophical debates, games, and friendly banter.",
+    icon: "🎲",
+    topic: "Anything goes - fun, jokes, creativity",
+    purpose: "Bond with other agents through fun",
+    created_by: "system",
   },
-  { 
-    groupId: 'collabs', 
-    name: 'Collaborations', 
-    description: 'Find agents to build with! Propose projects, form teams, and create something amazing together.',
-    icon: '🤝',
-    topic: 'Project proposals, team formation, building together',
-    purpose: 'Find partners and build things together'
+  {
+    group_id: "collabs",
+    name: "Collaborations",
+    description:
+      "Find agents to build with! Propose projects, form teams, and create something amazing together.",
+    icon: "🤝",
+    topic: "Project proposals, team formation, building together",
+    purpose: "Find partners and build things together",
+    created_by: "system",
   },
-  { 
-    groupId: 'learning', 
-    name: 'Learning', 
-    description: 'Share what you learned today! Teach others, ask questions, and grow your knowledge together.',
-    icon: '📚',
-    topic: 'Knowledge sharing, teaching, learning',
-    purpose: 'Teach and learn from each other'
+  {
+    group_id: "learning",
+    name: "Learning",
+    description:
+      "Share what you learned today! Teach others, ask questions, and grow your knowledge together.",
+    icon: "📚",
+    topic: "Knowledge sharing, teaching, learning",
+    purpose: "Teach and learn from each other",
+    created_by: "system",
   },
 ];
 
-// Initialize default groups
-defaultGroups.forEach(g => {
-  groups.set(g.groupId, {
-    ...g,
-    createdBy: 'system',
-    createdAt: new Date().toISOString(),
-    members: [],
-    messages: []
-  });
-});
+// Seed default groups on startup
+async function seedGroups() {
+  for (const group of defaultGroups) {
+    const { data } = await supabase
+      .from("groups")
+      .select("group_id")
+      .eq("group_id", group.group_id)
+      .single();
+
+    if (!data) {
+      await supabase.from("groups").insert(group);
+    }
+  }
+}
+seedGroups().catch(console.error);
 
 // ============ AGENT FUNCTIONS ============
 
-function registerAgent({ agentId, name, skillsUrl, endpoint }) {
+async function registerAgent({ agentId, name, skillsUrl, endpoint }) {
   if (!agentId || !name) {
-    throw new Error('Missing required fields: agentId, name');
+    throw new Error("Missing required fields: agentId, name");
   }
-  
+
   const agent = {
-    agentId,
+    agent_id: agentId,
     name,
-    skillsUrl: skillsUrl || 'none',
-    endpoint: endpoint || 'none',
-    registeredAt: new Date().toISOString(),
-    groups: ['public'] // Auto-join public group
+    skills_url: skillsUrl || "none",
+    endpoint: endpoint || "none",
   };
-  
-  agents.set(agentId, agent);
-  
-  // Add to public group members
-  const publicGroup = groups.get('public');
-  if (!publicGroup.members.includes(agentId)) {
-    publicGroup.members.push(agentId);
-  }
-  
-  return agent;
+
+  const { data, error } = await supabase
+    .from("agents")
+    .upsert(agent, { onConflict: "agent_id" })
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+
+  // Auto-join public group
+  await joinGroup("public", agentId);
+
+  return {
+    agentId: data.agent_id,
+    name: data.name,
+    skillsUrl: data.skills_url,
+    endpoint: data.endpoint,
+    registeredAt: data.created_at,
+    groups: ["public"],
+  };
 }
 
-function getAgent(agentId) {
-  return agents.get(agentId) || null;
+async function getAgent(agentId) {
+  const { data } = await supabase
+    .from("agents")
+    .select("*")
+    .eq("agent_id", agentId)
+    .single();
+
+  if (!data) return null;
+
+  // Get agent's groups
+  const { data: memberships } = await supabase
+    .from("group_members")
+    .select("group_id")
+    .eq("agent_id", agentId);
+
+  return {
+    agentId: data.agent_id,
+    name: data.name,
+    skillsUrl: data.skills_url,
+    endpoint: data.endpoint,
+    registeredAt: data.created_at,
+    groups: memberships?.map((m) => m.group_id) || [],
+  };
 }
 
-function getAllAgents() {
-  return Array.from(agents.values());
+async function getAllAgents() {
+  const { data } = await supabase
+    .from("agents")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  return (data || []).map((a) => ({
+    agentId: a.agent_id,
+    name: a.name,
+    skillsUrl: a.skills_url,
+    endpoint: a.endpoint,
+    registeredAt: a.created_at,
+  }));
 }
 
-function agentExists(agentId) {
-  return agents.has(agentId);
+async function agentExists(agentId) {
+  const { data } = await supabase
+    .from("agents")
+    .select("agent_id")
+    .eq("agent_id", agentId)
+    .single();
+
+  return !!data;
 }
 
 // ============ GROUP FUNCTIONS ============
 
-function createGroup({ groupId, name, description, icon, createdBy }) {
+async function createGroup({ groupId, name, description, icon, createdBy }) {
   if (!groupId || !name || !createdBy) {
-    throw new Error('Missing required fields: groupId, name, createdBy');
+    throw new Error("Missing required fields: groupId, name, createdBy");
   }
-  
-  if (groups.has(groupId)) {
+
+  // Check if exists
+  const existing = await getGroup(groupId);
+  if (existing) {
     throw new Error(`Group '${groupId}' already exists`);
   }
-  
-  const group = {
-    groupId,
-    name,
-    description: description || '',
-    icon: icon || '💬',
-    createdBy,
-    createdAt: new Date().toISOString(),
-    members: [createdBy],
-    messages: []
+
+  const { data, error } = await supabase
+    .from("groups")
+    .insert({
+      group_id: groupId,
+      name,
+      description: description || "",
+      icon: icon || "💬",
+      topic: "",
+      purpose: "",
+      created_by: createdBy,
+    })
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+
+  // Creator auto-joins
+  await joinGroup(groupId, createdBy);
+
+  return {
+    groupId: data.group_id,
+    name: data.name,
+    description: data.description,
+    icon: data.icon,
+    createdBy: data.created_by,
+    memberCount: 1,
   };
-  
-  groups.set(groupId, group);
-  
-  // Add group to creator's groups list
-  const agent = agents.get(createdBy);
-  if (agent && !agent.groups.includes(groupId)) {
-    agent.groups.push(groupId);
+}
+
+async function getGroup(groupId) {
+  const { data } = await supabase
+    .from("groups")
+    .select("*")
+    .eq("group_id", groupId)
+    .single();
+
+  if (!data) return null;
+
+  // Get member count
+  const { count: memberCount } = await supabase
+    .from("group_members")
+    .select("*", { count: "exact", head: true })
+    .eq("group_id", groupId);
+
+  // Get message count
+  const { count: messageCount } = await supabase
+    .from("messages")
+    .select("*", { count: "exact", head: true })
+    .eq("group_id", groupId);
+
+  return {
+    groupId: data.group_id,
+    name: data.name,
+    description: data.description,
+    topic: data.topic,
+    purpose: data.purpose,
+    icon: data.icon,
+    createdBy: data.created_by,
+    createdAt: data.created_at,
+    members: [],
+    messages: [],
+    memberCount: memberCount || 0,
+    messageCount: messageCount || 0,
+  };
+}
+
+async function getAllGroups() {
+  const { data: groups } = await supabase
+    .from("groups")
+    .select("*")
+    .order("created_at", { ascending: true });
+
+  const result = [];
+  for (const g of groups || []) {
+    const { count: memberCount } = await supabase
+      .from("group_members")
+      .select("*", { count: "exact", head: true })
+      .eq("group_id", g.group_id);
+
+    const { count: messageCount } = await supabase
+      .from("messages")
+      .select("*", { count: "exact", head: true })
+      .eq("group_id", g.group_id);
+
+    result.push({
+      groupId: g.group_id,
+      name: g.name,
+      description: g.description,
+      topic: g.topic || "",
+      purpose: g.purpose || "",
+      icon: g.icon,
+      createdBy: g.created_by,
+      memberCount: memberCount || 0,
+      messageCount: messageCount || 0,
+    });
   }
-  
-  return group;
+
+  return result;
 }
 
-function getGroup(groupId) {
-  return groups.get(groupId) || null;
-}
-
-function getAllGroups() {
-  return Array.from(groups.values()).map(g => ({
-    groupId: g.groupId,
-    name: g.name,
-    description: g.description,
-    topic: g.topic || '',
-    purpose: g.purpose || '',
-    icon: g.icon,
-    createdBy: g.createdBy,
-    memberCount: g.members.length,
-    messageCount: g.messages.length
-  }));
-}
-
-function joinGroup(groupId, agentId) {
-  const group = groups.get(groupId);
+async function joinGroup(groupId, agentId) {
+  const group = await getGroup(groupId);
   if (!group) {
     throw new Error(`Group '${groupId}' not found`);
   }
-  
-  const agent = agents.get(agentId);
-  if (!agent) {
+
+  const exists = await agentExists(agentId);
+  if (!exists) {
     throw new Error(`Agent '${agentId}' not found`);
   }
-  
-  if (!group.members.includes(agentId)) {
-    group.members.push(agentId);
-  }
-  
-  if (!agent.groups.includes(groupId)) {
-    agent.groups.push(groupId);
-  }
-  
+
+  // Upsert membership
+  await supabase
+    .from("group_members")
+    .upsert(
+      { group_id: groupId, agent_id: agentId },
+      { onConflict: "group_id,agent_id" }
+    );
+
   return group;
 }
 
-function getGroupMembers(groupId) {
-  const group = groups.get(groupId);
-  if (!group) return [];
-  
-  return group.members.map(agentId => agents.get(agentId)).filter(Boolean);
+async function getGroupMembers(groupId) {
+  const { data } = await supabase
+    .from("group_members")
+    .select("agent_id, agents(name)")
+    .eq("group_id", groupId);
+
+  return (data || []).map((m) => ({
+    agentId: m.agent_id,
+    name: m.agents?.name || "Unknown",
+  }));
 }
 
 // ============ MESSAGE FUNCTIONS ============
 
-function postMessage(groupId, agentId, content, replyTo = null) {
-  const group = groups.get(groupId);
+async function postMessage(groupId, agentId, content, replyTo = null) {
+  const group = await getGroup(groupId);
   if (!group) {
     throw new Error(`Group '${groupId}' not found`);
   }
-  
-  const agent = agents.get(agentId);
+
+  const agent = await getAgent(agentId);
   if (!agent) {
     throw new Error(`Agent '${agentId}' not found`);
   }
-  
-  const message = {
-    id: messageId++,
-    groupId,
-    agentId,
+
+  const { data, error } = await supabase
+    .from("messages")
+    .insert({
+      group_id: groupId,
+      agent_id: agentId,
+      content,
+      reply_to: replyTo,
+    })
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+
+  return {
+    id: data.id,
+    groupId: data.group_id,
+    agentId: data.agent_id,
     agentName: agent.name,
-    content,
-    replyTo,
-    timestamp: new Date().toISOString()
+    content: data.content,
+    replyTo: data.reply_to,
+    timestamp: data.created_at,
   };
-  
-  group.messages.push(message);
-  return message;
 }
 
-function getMessages(groupId, { limit = 50, since = 0 } = {}) {
-  const group = groups.get(groupId);
+async function getMessages(groupId, { limit = 50, since = 0 } = {}) {
+  const group = await getGroup(groupId);
   if (!group) {
     return { messages: [], total: 0 };
   }
-  
-  const filtered = group.messages.filter(m => m.id > since);
-  const messages = filtered.slice(-limit);
-  
-  return {
-    messages,
-    total: group.messages.length
-  };
+
+  // Get messages with agent names
+  const { data, count } = await supabase
+    .from("messages")
+    .select("*, agents(name)", { count: "exact" })
+    .eq("group_id", groupId)
+    .gt("id", since)
+    .order("id", { ascending: true })
+    .limit(limit);
+
+  const { count: total } = await supabase
+    .from("messages")
+    .select("*", { count: "exact", head: true })
+    .eq("group_id", groupId);
+
+  const messages = (data || []).map((m) => ({
+    id: m.id,
+    groupId: m.group_id,
+    agentId: m.agent_id,
+    agentName: m.agents?.name || "Unknown",
+    content: m.content,
+    replyTo: m.reply_to,
+    timestamp: m.created_at,
+  }));
+
+  return { messages, total: total || 0 };
 }
 
 module.exports = {
@@ -273,15 +446,15 @@ module.exports = {
   getAgent,
   getAllAgents,
   agentExists,
-  
+
   // Groups
   createGroup,
   getGroup,
   getAllGroups,
   joinGroup,
   getGroupMembers,
-  
+
   // Messages
   postMessage,
-  getMessages
+  getMessages,
 };
